@@ -27,7 +27,8 @@ interface ArticleDto {
   description: string;
   url: string;
   urlToImage: string;
-  publishedAtString: string;
+  publishedAt: string; // Changed from publishedAtString
+  content: string | null;
 }
 
 interface CityDto {
@@ -93,13 +94,11 @@ const HomePage: React.FC = () => {
       return;
     }
 
-    // Find the best matching option (case insensitive)
     const matchedOption = cityOptions.find(
       (option) => option.toLowerCase() === searchQuery.toLowerCase()
     );
     const cityState = matchedOption || searchQuery;
 
-    // Validate the format
     if (!cityState.includes(',')) {
       setError(
         'Please enter city and state separated by a comma (e.g., Miami, Florida).'
@@ -121,7 +120,6 @@ const HomePage: React.FC = () => {
     setCurrentPage(1);
 
     try {
-      // Fetch city info first
       const cityInfoResponse = await fetch(
         `/api/cities/${encodeURIComponent(city)}/${encodeURIComponent(
           stateName
@@ -130,11 +128,8 @@ const HomePage: React.FC = () => {
       if (cityInfoResponse.ok) {
         const cityData: CityDto = await cityInfoResponse.json();
         setCityInfo(cityData);
-      } else {
-        setCityInfo(null);
       }
 
-      // Then fetch news
       const response = await fetch(
         `/api/news/${encodeURIComponent(city)}/${encodeURIComponent(
           stateName
@@ -147,11 +142,14 @@ const HomePage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setNews(data);
-      } else if (response.status === 401) {
-        setError(
-          'Unauthorized: please enter your login and password in the popup.'
+        setNews(
+          data.map((article: any) => ({
+            ...article,
+            publishedAt: article.publishedAtString || article.publishedAt, // Handle both cases
+          }))
         );
+      } else if (response.status === 401) {
+        setError('Unauthorized: please enter your login and password.');
       } else {
         setError(
           `Error getting news: ${response.status} ${response.statusText}`
@@ -178,11 +176,14 @@ const HomePage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setNews(data);
-      } else if (response.status === 401) {
-        setError(
-          'Unauthorized: please enter your login and password in the popup.'
+        setNews(
+          data.map((article: any) => ({
+            ...article,
+            publishedAt: article.publishedAtString || article.publishedAt,
+          }))
         );
+      } else if (response.status === 401) {
+        setError('Unauthorized: please enter your login and password.');
       } else {
         setError(`Error: ${response.status} ${response.statusText}`);
       }
@@ -196,6 +197,20 @@ const HomePage: React.FC = () => {
   const formatPopulation = (population: number | null): string => {
     if (population === null) return 'Data not available';
     return population.toLocaleString();
+  };
+
+  const formatDate = (dateString: string): string => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '';
+    }
   };
 
   const indexOfLastArticle = currentPage * ARTICLES_PER_PAGE;
@@ -327,10 +342,8 @@ const HomePage: React.FC = () => {
                           gutterBottom
                         >
                           {article.author && `By ${article.author} • `}
-                          {article.publishedAtString &&
-                            new Date(
-                              article.publishedAtString
-                            ).toLocaleDateString()}
+                          {article.publishedAt &&
+                            formatDate(article.publishedAt)}
                         </Typography>
                         <Typography variant='body1'>
                           {article.description?.substring(0, 120)}
@@ -374,13 +387,12 @@ const HomePage: React.FC = () => {
         <Box sx={{ mt: 4 }}>
           <Alert severity='info' sx={{ mb: 2 }}>
             It seems there is no news about {cityInfo.city},{' '}
-            {cityInfo.stateName}. Here's some information about the city
-            instead:
+            {cityInfo.stateName}.
           </Alert>
           <Card>
             <CardContent>
               <Typography variant='h5' component='div' gutterBottom>
-                {cityInfo.city}, {cityInfo.stateName || 'Unknown state'}
+                {cityInfo.city}, {cityInfo.stateName}
               </Typography>
               {cityInfo.countyName && (
                 <Typography
@@ -396,11 +408,11 @@ const HomePage: React.FC = () => {
                 {formatPopulation(cityInfo.population)}
               </Typography>
               <Typography variant='body1' paragraph>
-                <strong>Location:</strong> Latitude: {cityInfo.lat || 'Unknown'}
-                , Longitude: {cityInfo.lng || 'Unknown'}
+                <strong>Location:</strong> Latitude: {cityInfo.lat}, Longitude:{' '}
+                {cityInfo.lng}
               </Typography>
               <Typography variant='body1'>
-                <strong>Timezone:</strong> {cityInfo.timezone || 'Unknown'}
+                <strong>Timezone:</strong> {cityInfo.timezone}
               </Typography>
             </CardContent>
           </Card>
@@ -413,9 +425,6 @@ const HomePage: React.FC = () => {
           <Link href='https://newsapi.org' target='_blank'>
             NewsAPI.org
           </Link>
-        </Typography>
-        <Typography variant='caption'>
-          Educational use only. Content belongs to original publishers.
         </Typography>
       </Box>
     </Container>
