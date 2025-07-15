@@ -27,7 +27,7 @@ interface ArticleDto {
   description: string;
   url: string;
   urlToImage: string;
-  publishedAt: string; // Changed from publishedAtString
+  publishedAt: string;
   content: string | null;
 }
 
@@ -64,7 +64,10 @@ const HomePage: React.FC = () => {
     setLoadingCities(true);
     try {
       const response = await fetch(
-        `/api/cities?query=${encodeURIComponent(query)}`
+        `http://51.21.218.3:8080/api/cities?query=${encodeURIComponent(query)}`,
+        {
+          credentials: 'include',
+        }
       );
       if (response.ok) {
         const data: string[] = await response.json();
@@ -121,9 +124,12 @@ const HomePage: React.FC = () => {
 
     try {
       const cityInfoResponse = await fetch(
-        `/api/cities/${encodeURIComponent(city)}/${encodeURIComponent(
-          stateName
-        )}`
+        `http://51.21.218.3:8080/api/cities/${encodeURIComponent(
+          city
+        )}/${encodeURIComponent(stateName)}`,
+        {
+          credentials: 'include',
+        }
       );
       if (cityInfoResponse.ok) {
         const cityData: CityDto = await cityInfoResponse.json();
@@ -131,9 +137,9 @@ const HomePage: React.FC = () => {
       }
 
       const response = await fetch(
-        `/api/news/${encodeURIComponent(city)}/${encodeURIComponent(
-          stateName
-        )}`,
+        `http://51.21.218.3:8080/api/news/${encodeURIComponent(
+          city
+        )}/${encodeURIComponent(stateName)}`,
         {
           method: 'GET',
           credentials: 'include',
@@ -169,7 +175,7 @@ const HomePage: React.FC = () => {
     setCityInfo(null);
     setCurrentPage(1);
     try {
-      const response = await fetch(`/api/news/global`, {
+      const response = await fetch(`http://51.21.218.3:8080/api/news/global`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -422,7 +428,7 @@ const HomePage: React.FC = () => {
       <Box sx={{ mt: 4, textAlign: 'center', fontSize: '0.8rem' }}>
         <Typography variant='body2' color='text.secondary'>
           News data from{' '}
-          <Link href='https://newsapi.org' target='_blank'>
+          <Link href='http://newsapi.org' target='_blank'>
             NewsAPI.org
           </Link>
         </Typography>
